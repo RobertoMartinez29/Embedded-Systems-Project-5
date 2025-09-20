@@ -1,0 +1,50 @@
+#include <msp430.h>
+#define RedLED BIT0
+#define GreenLED BIT6
+#define BUTTON BIT3 
+
+int main(void)
+{
+ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
+ P1DIR |= (RedLED + GreenLED);   // Set P1.0 and P1.7 to output direction
+                           // P1.3 must stay as input
+ P1OUT &= ~(RedLED + GreenLED);  // turn LEDs off initially
+ P1REN |= BUTTON;          // turn on pull-    resistor
+ P1OUT |= BUTTON;          // turn on pull-UP  resistor
+ P1IE  |= BUTTON;          // P1.3 interrupt enabled
+ P1IES |= BUTTON;          // P1.3 interrupt triggered on high-to-low transition
+ P1IFG &= ~BUTTON;         // P1.3 IFG cleared
+
+TACCR0 = 65000;
+TA0CCTL0 = CCIE;
+TACTL = TASSEL_2 + MC_0;
+
+ __enable_interrupt();     // enable all interrupts
+ while(1)
+ {
+  __delay_cycles(500000);
+  P1OUT ^= RedLED;
+ }
+
+}
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void) 
+{
+    TAR = 0;
+    TACTL = TASSEL_2 + MC_1;
+    P1IFG &= ~BUTTON;
+    P1IE &= ~BUTTON;
+}
+
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A (void)
+{
+  TACTL = TASSEL_2 + MC_0;
+  if (!(P1IN & BUTTON))
+  {
+    P1OUT ^= GreenLED;
+  }
+
+  P1IFG &= ~BUTTON;
+  P1IE |= BUTTON;
+}
