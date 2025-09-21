@@ -6,6 +6,7 @@ volatile char state = 0;
 volatile char timeCounter = 0;
 volatile char LED_ON = 0;
 volatile char nBlinks = 1;
+volatile char inBurst = 1;
 
 int main(void)
 {
@@ -24,18 +25,14 @@ int main(void)
 
   while(1)
   {
-    /*P1OUT |= RedLED;
     __delay_cycles(10000);
-    P1OUT &= ~RedLED;
-    __delay_cycles(1000000);
-    */
   }
 }
 
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void TimerA (void)
 {
-  if (!LED_ON)
+  if (!LED_ON && inBurst)
   {
     timeCounter = (timeCounter + 1) % 10;
   }
@@ -48,6 +45,7 @@ __interrupt void TimerA (void)
       P1OUT |= RedLED;
       TACTL |= TACLR;
       TACCR0 = 999;
+      inBurst = 0;
     }
 
     else if (nBlinks)
@@ -59,6 +57,7 @@ __interrupt void TimerA (void)
 
     else 
       {
+        inBurst = 1;
         LED_ON = 0;
         TACTL |= TACLR;
         TACCR0 = 9999;
